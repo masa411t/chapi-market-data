@@ -1,3 +1,5 @@
+import { analyzeMarkets } from "./engine.js";
+
 async function collect(env) {
   const res = await fetch("https://public.bitbank.cc/tickers_jpy");
   const json = await res.json();
@@ -43,18 +45,49 @@ async function collect(env) {
   };
 }
 
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=UTF-8",
+      "cache-control": "no-store"
+    }
+  });
+}
+
 export default {
   async fetch(request, env) {
-    const result = await collect(env);
+    try {
+      const url = new URL(request.url);
 
-    return new Response(
-      JSON.stringify(result, null, 2),
-      {
-        headers: {
-          "content-type": "application/json; charset=UTF-8"
-        }
+      if (url.pathname === "/analysis") {
+        const result = await analyzeMarkets(env);
+        return jsonResponse(result);
       }
-    );
+
+      if (url.pathname === "/health") {
+        const row = await env.DB.prepare(`
+          SELECT COUNT(*) AS total, MAX(collected_at) AS latest
+          FROM market_data
+        `).first();
+
+        return jsonResponse({
+          success: true,
+          database: "ok",
+          totalRows: Number(row?.total || 0),
+          latest: row?.latest || null
+        });
+      }
+
+      const result = await collect(env);
+      return jsonResponse(result);
+
+    } catch (error) {
+      return jsonResponse({
+        success: false,
+        error: String(error?.message || error)
+      }, 500);
+    }
   },
 
   async scheduled(event, env, ctx) {
