@@ -1,0 +1,17 @@
+{
+  "name": "chapi-market-data",
+  "main": "collector.js",
+  "compatibility_date": "2026-08-17",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chapi-market-db",
+      "database_id": "46a18c41-f498-4412-9268-6f887e8b8c51"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
+  }
+}
